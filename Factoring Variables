@@ -1,0 +1,152 @@
+data saselect.newmerge;
+	merge saselect.merge1 saselect.popsort;
+	by fips;
+	
+		popdensity = Population/area_square_miles;
+		turnout = totalvotes/Population;
+		percent_republican = republic/totalvotes;
+		percent_democrat = democrat/totalvotes;
+		margin=percent_republican - percent_democrat;
+		votediff=republic-democrat;
+		percent_female = TOT_FEMALE/TOT_POP;
+		percent_male = TOT_MALE/TOT_POP;
+		percent_white = (WA_MALE+WA_FEMALE)/TOT_POP;
+		percent_black = (BA_MALE + BA_FEMALE)/TOT_POP;
+		percent_mixed = (TOM_MALE + TOM_FEMALE)/TOT_POP;
+		percent_hispanic = (H_MALE + H_FEMALE)/TOT_POP;
+		if ORTHRATE eq '.' then ORTHRATE=0; *cleaning out the missing data;
+		if CATHRATE eq '.' then CATHRATE=0;
+		if BPRTRATE eq '.' then BPRTRATE=0;
+		num_white = (WA_MALE + WA_FEMALE);
+		num_black = (BA_MALE + BA_FEMALE);
+		num_mixed = (TOM_MALE + TOM_FEMALE);
+		num_hispanic = (H_MALE + H_FEMALE);
+		
+		num_MPR=(MPRTRATE/1000)*TOT_POP;
+		num_BPR=(BPRTRATE/1000)*TOT_POP;
+		num_CATH=(CATHRATE/1000)*TOT_POP;
+		num_TOT=(TOTRATE/1000)*TOT_POP;
+		num_EVAN=(EVANRATE/1000)*TOT_POP;
+		
+		num_WC=(WC_RATE/100)*TOT_POP;
+		num_BC=(BC_RATE/100)*TOT_POP;
+		num_AG=(AG_RATE/100)*TOT_POP;
+		
+		Ged=percent_BD + percent_GD;
+		Led=percent_HSE + percent_AD;
+		
+		num_ged=(ged/100)*TOT_POP;
+		num_led=(led/100)*TOT_POP;
+	run;
+	
+
+*****************************************************************************************;
+data saselect.changevar ; 
+	set saselect.newmerge;
+	*drop is actually better here because we want to keep all the new variables/changes we calculated....; 
+	*put z's in front of all delta variables for easy distinction;
+	
+	zvotediff=votediff-lag(votediff);
+	zdempct=percent_democrat-lag(percent_democrat);
+	zreppct=percent_republican-lag(percent_republican);
+	ztotvt=totalvotes-lag(totalvotes);
+	zreptot=republic-lag(republic);
+	zdemtot=democrat-lag(democrat);
+	zmargin=margin-lag(margin);
+	
+	zWC=WC_rate-lag(WC_rate);
+	zBC=BC_rate-lag(BC_rate);
+	zUnemp=unemployment_rate-lag(unemployment_rate);
+	zwhite=percent_white-lag(percent_white);
+	zblack=percent_black-lag(percent_black);
+	zhispanic=percent_hispanic-lag(percent_hispanic);
+	*BP=BPRTRATE-lag(BPRTRATE); *Can't do change in religion, because they are the same for both years. Only can do static religion. 
+	*cath=CATHRATE-lag(CATHRATE);
+	*evan=EVANRATE-lag(EVANRATE);
+	*MP=MPRTRATE-lag(MPRTRATE);
+	zmale=percent_male-lag(percent_male);
+	zfemale=percent_female-lag(percent_female);
+	zHSE=percent_HSE-lag(percent_HSE);
+	zAD=percent_AD-lag(percent_AD);
+	zBD=percent_BD-lag(percent_BD);
+	zGD=percent_GD-lag(percent_GD);
+	zGed=Ged-lag(Ged);
+	zLed=Led-lag(Led);
+	zpopdensity=popdensity-lag(popdensity);
+	if year eq 2016 then output saselect.changevar;
+	 *else output saselect.diffs;
+	 
+	drop   
+	AmericanIndian_Median_age_Female AmericanIndian_Median_age_Male 
+	AmericanIndian_Median_age_Total Asian_Median_age_Female Asian_Median_age_Male Asian_Median_age_Total
+	Black_Median_age_Female Black_Median_age_Male Black_Median_age_Total Hispanic_Median_age_Female 
+	Hispanic_Median_age_Male Hispanic_Median_age_Total White_Median_age_Total White_Median_age_Male White_Median_age_Female 
+	TOT_POP TOT_MALE TOT_FEMALE WA_MALE WA_FEMALE BA_MALE BA_FEMALE TOM_MALE TOM_FEMALE AA_MALE AA_FEMALE
+	IA_MALE IA_FEMALE H_MALE H_FEMALE
+	turnout percent_mixed  AG_rate  
+	percent_HSE percent_BD percent_AD percent_GD
+	area_square_miles  population republic democrat totalvotes
+	percent_democrat percent_republican
+	;	 
+run; 
+
+*****************************************************************************************;
+Proc factor data=saselect.changevar nfact=8 rotate=varimax 
+		out=saselect.factors(rename=(factor1=fed_type factor2=frace factor3=fgender factor4=fzgender factor5=fzrace factor6=fzedu factor7=fzwc factor8=fzbc)); 
+	var zwhite zblack zfemale zmale zled zGed 
+	unemployment_rate WC_rate BC_rate Ged Led   
+	percent_white percent_black percent_male percent_female
+	zBC zWC
+	;	
+Run; *MPRTRATE on it's own percent_hispanic evanrate ZBC ZWC OTHRATE CATHRATE ORTHRATE  zunemp popdensity,   
+******************************************************************************;
+proc standard data=saselect.factors out=saselect.standfactors mean=0 std=1;
+	var MPRTRATE percent_hispanic evanrate ZBC ZWC OTHRATE CATHRATE ORTHRATE zunemp popdensity;
+run;
+
+******************************************************************************;
+proc glmselect data=saselect.standfactors;
+	model zvotediff = fed_type |frace| fgender|fzgender | fzrace|fzedu| fzwc|fzbc |percent_hispanic|
+	evanrate |ZBC| ZWC| CATHRATE| TOTRATE| zunemp| popdensity @2;
+run;
+*increase in the republican margin of votes between 16 and 12;
+******************************************************************************;
+ods trace on;
+ods output ParameterEstimates=SASElect.ModelParameters; 
+proc glm data=saselect.standfactors;
+	model zvotediff = fed_type frace fed_type*frace fzgender fed_type*fzwc fed_type*fzbc
+	percent_hispanic fed_type*percent_hispanic frace*percent_hispanic fed_type*evanrate
+	fed_type*zbc fed_type*zwc zbc*zwc cathrate totrate evanrate*totrate fed_type*zunemp
+	cathrate*zunemp frace*popdensity fzgender*popdensity fzrace*popdensity percent_hispanic*popdensity
+	evanrate*popdensity zbc*popdensity zwc*popdensity cathrate*popdensity totrate*popdensity;
+run;	
+     
+
+ods trace off;
+    
+proc export data=SASELECT.Modelparameters
+outfile='C:\Users\kdl8569\modelparameters.csv' 
+dbms=csv
+replace;
+run;
+
+
+
+
+******************************************************************************;
+*a one std dev change in ______ results in this many votes;
+*feed it back in county by county.... where did it do well; 
+
+*where you overpredicted- clustered in one state....;
+*maps, state level maps (national for sure); 
+*side by side- vote change in years; 
+*future work- for any deltas what we expect for county off model if zvariable changed;
+
+******************************************************************************;
+
+
+******************************************************************************;
+
+
+
+
