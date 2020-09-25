@@ -1,0 +1,180 @@
+
+proc corr data=saselect.narrowmargins;
+  var margin 
+	percent_white percent_black  percent_hispanic	;
+	*where year eq 2012
+	;
+run;
+ods graphics off;
+*This shows that battleground counties are
+	1) Highly correlated with race
+	2) Have disproportionately low percentages for Hispanic (national average 17%)
+Battleground counties do not differ significantly from national average racial distribution (13/14%). This occurs with both years combined, and 2012/2016 separately 
+******************************************************************;
+proc corr data=saselect.narrowmargins;
+  var margin 
+	percent_white;
+run;
+
+proc reg data=saselect.narrowmargins;
+	model margin=percent_black;
+	run;
+******************************************************************;
+proc corr data=saselect.narrowmargins;
+  var margin 
+	percent_male percent_female	;
+run;
+******************************************************************;
+proc reg data=saselect.narrowmargins;
+	model margin= percent_male percent_female;
+	where year eq 2016;
+run; 
+*Gender alone does not have a significant effect on margins;
+******************************************************************;
+proc sort data=saselect.narrowmargins out=saselect.sortedbyyear;
+	by year;
+run;
+
+proc glm data=saselect.sortedbyyear;
+	by year;
+	model margin=percent_GD|percent_female;
+	run;
+*the interaction between white male percentage and percent with a HSE is not stat sig; 
+****************************************************************************************;
+proc glm data=saselect.sortedbyyear;
+	by year;
+	model margin=MHI_Change;
+	run;
+	*Median Household Income change Not statistically significant for both 2012 and 2016 or independently.
+****************************************************************************************;
+proc corr data=saselect.narrowmargins;
+  var margin 
+	MPRTRATE CATHRATE EVANRATE BPRTRATE OTHRATE ORTHRATE;
+	where year eq 2016;
+run;
+*Religion change Not statistically significant for both 2012 and 2016 or independently.
+	*MPR suggestive in 2016, ORTH suggestive in 2012;
+****************************************************************************************;
+proc corr data=saselect.narrowmargins;
+  var margin 
+	popdensity;
+	*where year eq 2012;
+run;
+*Popdensity VARIES greatly in battleground counties. 
+*popdensity is strongly correlated with marin: 
+	*  for both 2012 and 2016 and independently;
+	
+	proc corr data=saselect.marginstogether;
+  var margin 
+	popdensity;
+	*where year eq 2012;
+run;
+****************************************************************************************;
+
+proc corr data=saselect.narrowmargins;
+  var margin 
+	BC_Rate;
+	where year eq 2016;
+run;
+*WC and AG change Not statistically significant, BC suggestive. 
+*WC IS STAT SIG for 2016, not for 2012. (same for BC)
+
+****************************************************************************************;
+
+proc corr data=saselect.narrowmargins;
+  var margin 
+	unemployment_rate;
+	where year eq 2012;
+run;
+
+*NOT STAT SIG DIFFERENT AT ALL; 
+****************************************************************************************;
+proc corr data=saselect.narrowmargins;
+	var margin  
+	Black_Median_age_Female Black_Median_age_Male Black_Median_age_Total  
+	White_Median_age_Female White_Median_age_Male White_Median_age_Total 
+	;  	 
+	*where year eq 2012;
+run;
+
+*The age of Black_female, white female, white male, and white total ARE SIG STAT!
+*NEED TO GRAPH black female. 
+****************************************************************************************;
+
+
+
+proc glmselect data=saselec.narrowmargins;
+	model margin =  
+	BC_Rate
+	TOTRATE 
+	MHI_Change
+	Unemployment_rate 
+	popdensity 
+	percent_male 
+	percent_white 
+	percent_HSE 
+	turnout 
+	/selection=adjrsq aic
+	;  	 
+run;
+
+
+
+*************************************************************************************************************;
+
+proc glmselect data=saselect.narrowmargins;
+	model margin =  
+	percent_male 
+	percent_white 
+	percent_HSE 
+	/selection=forward;  	 
+run;
+*************************************************************************************************************;
+
+proc glmselect data=saselect.narrowmargins;
+	model margin =  
+	BPRTRATE | BC_Rate | AG_Rate| WC_Rate 
+	|CATHRATE | EVANRATE | MPRTRATE | ORTHRATE| OTHRATE |TOTRATE 
+	| MHI_Change 
+	| Unemployment_rate 
+	|percent_AD | percent_BD | percent_GD | percent_HSE 
+	| turnout | popdensity
+	| percent_female | percent_male 
+	;  	 
+run;
+*************************************************************************************************************;
+
+proc glmselect data=saselect.narrowmargins;
+	model margin =  
+	 WC_Rate 
+	|TOTRATE 
+	| MHI_Change 
+	| Unemployment_rate 
+	| percent_BD | percent_HSE 
+	| turnout | popdensity
+	| percent_male @2 
+	;  	 
+run;
+
+*only turnout*popdens and percent_BD*unemployment;
+
+*************************************************************************************************************;
+
+proc glm data=saselect.narrowmargins;
+	model margin =  
+	percent_BD | unemployment_rate
+	;  	 
+run;
+*************************************************************************************************************;
+****After notes, GLM***********;
+proc glm data=saselec.sortedbyyear;
+	*class year;
+	model margin=  BC_Rate popdensity White_Median_age_Female percent_hispanic percent_white
+					MPRTRATE ;
+	*lsmeans year / diff adjust=tukey;
+run;
+
+
+
+
+
