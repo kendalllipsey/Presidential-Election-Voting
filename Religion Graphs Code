@@ -1,0 +1,357 @@
+***INTERESTING;
+
+proc reg data=saselect.narrowmargins;
+	model margin =  
+	BC_Rate
+	TOTRATE 
+	MHI_Change
+	Unemployment_rate 
+	popdensity 
+	percent_male 
+	percent_white 
+	percent_HSE 
+	turnout 
+	/selection=adjrsq aic bic cp sbc
+	;  	 
+run;
+
+
+proc reg data=saselect.narrowmargins;
+	model margin =Unemployment_rate popdensity percent_white percent_HSE;
+	run;
+*this shows a different model. 
+****************************************************************************;
+
+
+
+proc corr data=saselect.narrowmargins;
+  var margin 
+	MPRTRATE CATHRATE EVANRATE BPRTRATE OTHRATE ORTHRATE;
+	where year eq 2012;
+run;
+**Religion change Not statistically significant for both 2012 and 2016 or independently.
+	*MPR suggestive in 2016, ORTH suggestive in 2012;
+	
+proc reg data=saselect.narrowmargins;
+	model margin = orthrate  MPRTRATE;
+run;
+
+proc glm data=saselect.narrowmargins;
+	class year;
+	model margin = orthrate;
+run;
+
+proc sgpanel data=saselect.narrowmargins;
+	panelby year;
+	scatter x=margin y=mprtrate;
+	*scatter x=margin y=orthrate;
+run;
+
+ods graphics on;
+proc univariate data=saselect.narrowmargins plots;
+	class year;
+	var margin MPRTRATE orthrate;
+	*hist mprtrate;
+	*qqplot mprtrate;
+run;
+
+******************MPR start**************************;
+proc format;
+	value bigmargins
+	low--.71="less than -71%"
+	-.70--.61="-70% to -61%"
+	-.60--.51="-60% to -51%"
+	-.50--.41="-50% to -41%"
+	-.40--.31="-40% to -31%"
+	-.30--.21='-30% to -21%'
+	-.20--.11="-20 to -11%"
+	-.10-0='-10% to 0'
+	.01-.10='1% to 10%'
+	.11-.20='11% to 20%'
+	.21-.30="21%-30%"
+	.31-.40="31%-40%"
+	.41-.50="41%-50%"
+	.51-.60="51%-60%"
+	.61-.70="61%-60%"
+	.71-high="Over 71%"
+	;
+run;
+
+proc format;
+	value MPRTRATEe
+	1-50='50 and under'
+	51-100='51 to 100'
+	101-150='101 to 150'
+	151-200='151 to 200'
+	201-250='201 to 250'
+	251-300="251 to 300"
+	301-350="301 to 350"
+	351-400="351 to 400"
+	401-450="401-450"
+	451-500="451-500"
+	501-550="501-550"
+	551-600="551-600"
+	601-650="601-650"
+	651-700="651 to 700"
+	701-high="700 and above";
+run;
+	
+	
+*I think this is the best representation I've got of MPRTRATE, it shows 
+that for all margins MPRTRATE is correlated, but for small margins it's suggestive. 
+ods graphics/ discretemax=2900;	
+*onenote 11;
+proc sgplot data=saselect.marginstogether ;
+	format MPRTRATE MPRTRATEE. margin bigmargins.;
+	label margin='Margin All Counties' narrow='Margin Battleground Counties' MPRTRATE='Main Line Protestant Rate';
+	hbar MPRTRATE  / response=margin stat=mean  ;
+	hbar MPRTRATE/ response=narrow stat=mean ;
+	where year eq 2016;
+	yaxis values=(700 to 0 by -50);
+	title 'Rate of Main Line Protestants in Battleground and All Counties';
+	run; 
+
+*this shows MPR rate only in battleground counties, not including all counties
+for comparison;
+*onenote 12;
+proc sgplot data=saselect.narrowmargins ;
+	format MPRTRATE MPRTRATEE. margin bigmargins.;
+	hbar MPRTRATE  / response=margin stat=mean;
+	where year eq 2016;
+	yaxis values=(700 to 0 by -50);
+	run; 
+
+***********************MPR finish*****************************;
+
+***********************ORTH START*****************************;
+*this shows that the sample size for ORTHRATE is just too small;
+*onenote 10;
+proc sgplot data=saselect.marginstogether ;
+	*format ORTHRATE MPRTRATEE. margin bigmargins.;
+	hbar ORTHRATE  / response=margin stat=mean  ;
+	hbar ORTHRATE/ response=narrow stat=mean ;
+	where year eq 2012;
+	yaxis values=(0 to 700 by 50);
+	run; 
+
+****************ORTH FINISH*********************************;
+
+proc sgplot data=saselect.narrowmargins;
+	hbar margin / response=MPRTRATE;
+	where year eq 2016;
+	run; 
+**********************************************************************;
+*These graphs illustrate that with all margins considered, 
+the percent of black population is highly correlated. ;
+proc sgpanel data=saselect.margins;
+	panelby year;
+	scatter x=margin y=percent_black;
+run;
+
+*This graph illustrates that with only narrow margins considered, 
+the percent of black population has no correlation; 
+
+proc sgpanel data=saselect.narrowmargins;
+	panelby year;
+	scatter x=margin y=percent_black;
+run;
+
+*this shows that the percent black is correlated when all margins are considered. ;
+proc reg data=saselect.margins;
+	model margin= percent_black;
+run;
+
+data saselect.marginstogether;
+	set saselect.margins;
+	if (margin gt -.075 and margin lt .075) then do;
+	narrow=margin;
+	narrowblack=percent_black;
+	narrowwhite=percent_white;
+	narrowhispanic=percent_hispanic;
+	narrowdens=popdensity;
+	yesnarrow='Battleground';
+	end;
+	else if yesnarrow ne 'yes' then yesnarrow='Whole';
+	usblack=.123;
+	ushispanic=.167;
+	uswhite=.626;
+run;
+	
+*onenote 9;
+proc sgplot data=saselect.marginstogether;
+	scatter x=yesnarrow y=margin/jitter jitterwidth=.8;
+run;
+
+*this is not useful at all (below);
+proc sgplot data=saselect.marginstogether;
+	vbox percent_black/group=year groupdisplay=cluster extreme whiskerattrs=(color=red);
+	vbox narrowblack/group=year groupdisplay=cluster extreme whiskerattrs=(color=red);
+	run;
+
+proc sgplot data=saselect.marginstogether;
+	scatter x=margin y=percent_black;
+	scatter x=margin y=narrowblack;
+run;
+
+proc univariate data=saselect.marginstogether plots;
+	class year;
+	var margin percent_black narrowblack;
+run;
+*****************************start here black;
+proc format;
+	value black
+	0 -.02="less than 2%"
+	.03-.05="3% to 5%"
+	.06-.09="6% to 9%"
+	.1-.13='10% to 13%'
+	.14-.19='14%-19%'
+	.20-.23='20% to 23%'
+	.24-.27='24% to 27%'
+	.28-.31='28% to 31%'
+	.32-.35='32% to 35%'
+	.36-.39='36% to 39%'
+	.40-.43='40% to 43%'
+	.44-.47='44% to 47%'
+	.48-.51='48% to 51%'
+	.52-.55='52% to 55%'
+	.56-.59='56% to 59%'
+	.60-.63='60% to 63%'
+	.64-.67="64% to 67%"
+	.68-.71="68% to 71%"
+	.72-.75='72% to 75%'
+	.76-.79="76% to 79%"
+	.80-.83="80% to 83%"
+	.84-high="84% and higher";
+run;
+
+*I think this graph illustrates the idea best, although in general the black
+population is correlated with margin, in narrow margins it is not; 
+*onenote #7;
+ods graphics/discretemax=1200;
+proc sgplot data=saselect.marginstogether ;
+	format percent_black black.;
+	label percent_black='Black Percentage of Population' margin='Margin All Counties' narrow='Margin Battleground Counties';
+	hbar percent_black / response=margin stat=mean  ;
+	hbar percent_black/ response=narrow stat=mean ;
+	xaxis label='Margin';
+	yaxis values=(.87 to 0 by -.03);
+	title 'Percentage of Black Population in Battleground and All Counties';
+run; 
+
+*onenote8;
+proc sgplot data=saselect.marginstogether ;
+	label percent_black='Black Percentage of Population' narrow='Margin of Victory';
+	format percent_black black.;
+	hbar percent_black/ response=narrow stat=mean ;
+	yaxis values=(.87 to 0 by -.03);
+	title 'Percentage of Black Population in Battleground Counties';
+run; 
+*************************end here black***********;
+********************************************POP DENSITY;
+proc univariate data=saselect.marginstogether plots;
+	class year;
+	var margin popdensity;
+run;
+
+proc format;
+value dens
+	0-4000='0-4000'
+	4001-8000='4001-8000'
+	8001-12000='8001-12000'
+	12001-16000='12001-16000'
+	16001-20000='16001-20000'
+	20001-24000='20001-24000'
+	24001-28000='24001-28000'
+	28001-32000='28001-32000'
+	32001-36000='32001-36000'
+	36001-40000='36001-40000'
+	40001-44000='40001-44000'
+	44000-high='above 44000';
+run;
+
+proc format;
+value smalldens
+	0-400='0-400'
+	401-800='401-800'
+	801-1200='801-1200'
+	1201-1600='1201-1600'
+	1601-2000='1601-2000'
+	2001-2400='2001-2400'
+	2401-2800='2401-2800'
+	2801-3200='2801-3200'
+	3201-3600='3201-3600'
+	3601-4000='3601-4000'
+	4001-4400='4001-4400'
+	4400-high='above 4400';
+run;
+
+*onenote 6;
+proc sgplot data=saselect.marginstogether;
+	label popdensity='Population Density' margin='Margin All Counties' narrow='Margin Battleground Counties';
+	format  margin bigmargins. popdensity dens.;
+	vbar popdensity/  response=margin stat=mean ;
+	vbar popdensity/ response=narrow stat=mean;
+	yaxis label='Margin of Victory';* values=(0 to 48000 by 4000);
+	title 'Population Density in Battleground and All Counties';
+run;
+
+*onenote 5;
+proc sgplot data=saselect.marginstogether;
+	label popdensity='Population Density';
+	format  margin bigmargins. popdensity smalldens.;
+	vbar popdensity/ response=narrow stat=mean;
+	xaxis values=(0 to 4800 by 400);
+	yaxis label='Margin in Battleground Counties';
+	title 'Population Density in Battleground Counties';
+run;
+
+*Onenote 4
+*this below shows that the majority of narrow counties was low population density; 
+proc sgplot data=saselect.narrowmargins;
+	label popdensity='Population Density';
+	histogram popdensity/ nbins=75;
+	xaxis values=(0 to 2000 by 200);
+	yaxis label='';
+	title 'Population Distribution of Battleground Counties';
+run;
+
+proc sgplot data=saselect.marginstogether;
+	*scatter x=popdensity y=margin;
+	scatter x=narrow y=popdensity;
+	yaxis values=(0 to 4600 by 200);
+run;
+
+proc format;
+	value narrowmarg
+	-.075--.06='-7.5 to -6'
+	-.059--.045='-5.9 to -4.5'
+	-.044--.030='-4.4 to -3'
+	-.029--.015='-2.9 to -1.5'
+	-.014-0='-1.4 to 0'
+	.001-.015='0 to 1.5'
+	.016-.030='1.6 to 3'
+	.031-.045='3.1 to 4.5'
+	.046-.060='4.6 to 6'
+	.061-.075='6.1 to 7.5';
+run;
+
+*Onenote #3;
+proc sgplot data=saselect.marginstogether;
+	label popdensity='Population Density (Per Square Mile)' yesnarrow='Counties';
+	vbox popdensity/category=yesnarrow nooutliers;
+	yaxis values=(0 to 600 by 100);
+	format margin narrowmarg.;
+	title 'Population Density in Battleground Counties and All Counties';
+	run;
+
+
+*Onenote 1;
+proc glm data=saselect.narrowmargins;
+	model margin=turnout|popdensity;
+run;
+
+*Onenote #2;	
+proc glm data=saselect.narrowmargins;
+	model margin=turnout|popdensity;
+	where popdensity lt 1000;
+run;
