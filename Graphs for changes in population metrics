@@ -1,0 +1,645 @@
+proc univariate data=saselect.standfactors;
+	var zvotediff;
+	histogram zvotediff;
+run;
+******************************************************************************************;
+*make a better histogram showing smaller values for republicans;
+proc format;
+	value zvotediffhist
+	-400000--100001='-100 or more'
+	-100000--50000='-50 to -100'
+	-49999--30000='-30 to -50'
+	-29000--15000='-15 to -30'
+	-14999--7000='-7 to -15'
+	-6999-0="0 to -7"
+	1-1500='0 to 1.5'
+	1501-3000='1.5 to 3'
+	3001-7000='3 to 7'
+	7001-15000='7 to 15'
+	15001-30001='15 to 30'
+	30001-45000='30 to 45'
+	45001-60000='45 to 60'
+	60001-75000='60 to 75'
+	75001-100000='75 and up'
+	;
+run;
+******************************************************************************************;
+*Make format equally distributing rep and dem vote changes;
+proc format;
+	value zvotediffbrackets
+	-900000--50000='-50 to -100 (Democratic)'
+	-49999--30000='-30 to -50 (Dem)'
+	-29999--15000='-15 to -30 (Dem)'
+	-14999--7000='-7 to -15 (Dem)'
+	-6999-0="0 to -7 (Dem)"
+	1-7000='0 to 7(Rep)'
+	7001-15000='7 to 15 (Rep)'
+	15001-30001='15 to 30 (Rep)'
+	30001-49999='30 to 50 (Rep)'
+	50001-100000='50 to 100 (Republican)'
+	;
+run;
+******************************************************************************************;
+proc format;
+	value zwhite
+	-.0599--.05='-5% to -6%'
+	-.0499--.04='-4% to -5%'
+	-.0399--.03='-3% to -4%'
+	-.0299--.02='-2% to -3%'
+	-.019999--.01='-1% to -2%'
+	-.01-0='-1% to 0%'
+	0-.01='0 to 1%'
+	.01-.01999='1% to 2%'
+	.02-.0299='2% to 3%'
+	.03-high='3% or more'
+	;
+run;
+******************************************************************************************;
+******************************************************************************************;
+*POPULATION DENSITY GRAPHS
+******************************************************************************************;
+******************************************************************************************;
+******************************************************************************************;
+
+
+proc format;
+	value zpopdensity
+	-90--81='-80 to -90'
+	-80--71='-70 to -80'
+	-70--61='-60 to -70'
+	-60--51='-50 to -60'
+	-50--41='-40 to -50'
+	-40--31='-30 to -40'
+	-30.99--21='-20 to -30'
+	-20--11='-10 to -20'
+	-10.99-0='0 to -10'
+	0-10='0 to 10'
+	10.01-20.99='10 to 20'
+	21-30.999='20 to 30'
+	31-40.99='30 to 40'
+	41-50='40 to 50'
+	51-60.9='50 to 60'
+	61-70.99='60 to 70'
+	71-80='70 to 80'
+	81-90='80 to 90'
+	90.01-100='90 to 100'
+	101-150='100 to 150'
+	151-500='150 to 500'
+	500-1200='500 or more'
+	;
+run;
+******************************************************************************************;
+proc sgplot data=saselect.standfactors ;
+	format  zpopdensity zpopdensity. ;
+	hbar zpopdensity/ response=zvotediff stat=mean;
+	xaxis values=(-100000 to 100000 by 10000);
+run;
+
+proc format;
+value dens
+	0-<4000='0-4,000'
+	4000-<8000='4,000-8,000'
+	8000-<12000='8,000-12,000'
+	12000-<16000='12,000-16,000'
+	16000-<20000='16,000-20,000'
+	20000-<24000='20,000-24,000'
+	24000-<28000='24,000-28,000'
+	28000-<32000='28,000-32,000'
+	32000-<36000='32,000-36,000'
+	36000-<40000='36,000-40,000'
+	40000-<44000='40,000-44,000'
+	44000-high='above 44,000';
+run;
+
+******************************************************************************************;
+proc format;
+	value zvotediffbrack
+	-900000--100000='-100 or more (Democratic)'
+	-100000--75000='-100 to -75 (Dem)'
+	-75000--50000='-50 to -75 (Dem)'
+	-49999--30000='-30 to -50 (Dem)'
+	-29999--15000='-15 to -30 (Dem)'
+	-14999--7000='-7 to -15 (Dem)'
+	-6999-0="0 to -7 (Dem)"
+	1-7000='0 to 7(Rep)'
+	7001-15000='7 to 15 (Rep)'
+	15001-30001='15 to 30 (Rep)'
+	30001-49999='30 to 50 (Rep)'
+	50001-100000='50 to 100 (Republican)'
+	;
+run;
+
+x 'cd C:\Users\kdl8569\Documents\SASelectionfigures';
+ods select all;
+ods PDF file='Figure 1 Population Density Mean.pdf'; 
+proc sgplot data=saselect.changevar;
+	format popdensity dens. zvotediff zvotediffbrack. ;
+	label zvotediff='Republican over Democratic votes in Thousands (Mean)' popdensity='Population Density (Per Square Mile)';
+	vbar popdensity / response=zvotediff stat=mean;
+	yaxis offsetmax=.12;
+	title 'Population Density';
+	run;
+ods PDF close;
+	
+*Compare these two!;
+******************************************************************************************;
+ods pdf file='Figure 2 Population Density Sum.pdf'; 
+proc sgplot data=saselect.changevar;
+	format popdensity dens.;
+	label zvotediff='Number Republican over Democratic votes (Sum)' popdensity='Population Density (Per Square Mile)';
+	vbar popdensity / response=zvotediff;
+	yaxis offsetmin=.05;
+	title 'Population Density';
+	run;
+ods pdf close;
+*And this one!;
+******************************************************************************************;
+
+
+
+******************************************************************************************;
+******************************************************************************************;
+*BLUE COLLAR/WHITE COLLAR GRAPHS
+******************************************************************************************;
+******************************************************************************************;
+proc format;
+	value zBC
+	-3--2='-2% or more'
+	-2--1.51='-1.5% to -2%'
+	-1.5--1='-1% to -1.5% '
+	-1--.51='-0.5% to -1%'
+	-.5-0='-0.5% to 0'
+	0-.5='0 to 0.5%'
+	.51-1='0.5% to 1%'
+	1.1-1.5='1% to 1.5%'
+	1.51-2='1.5% to 2%'
+	2.1-2.5='2% to 2.5%'
+	2.51-3='2.5% to 3%'
+	3.1-3.5='3% to 3.5%'
+	3.51-4='3.5% to 4%'
+	4.1-4.5='4% to 4.5%'
+	4.51-7='4.5% or more'
+	;
+run;
+
+******************************************************************************************;
+proc format;
+	value zWC
+	-7--4.51='-4.5% or more'
+	-4.5--4.1='-4% to -4.5%'
+	-4--3.51='-3.5% to -4%'
+	-3.5--3.1='-3% to -3.5%'
+	-3--2.51='-2.5% to -3%'
+	-2.5--2.1='-2% to -2.5%'
+	-2--1.51='-1.5% to -2%'
+	-1.5--1='-1% to -1.5%'
+	-1--.51='-0.5% to -1%'
+	-.5-0='-0.5% to 0'
+	0-.5='0 to 0.5%'
+	.51-1='0.5% to 1%'
+	1.1-1.5='1% to 1.5%'
+	1.51-2='1.5% to 2%'
+	2.1-2.5='2% to 2.5%'
+	2.51-3='2.5% to 3%'
+	3.1-3.5='3% to 3.5%'
+	3.51-4='3.5% to 4%'
+	4.1-4.5='4% to 4.5%'
+	4.51-7='4.5% or more'
+	;
+run;
+
+******************************************************************************************;
+proc format;
+	value zvotediffsmall
+	-9000--1001='-1,000 or more (Democratic)'
+	-1000--801='-800 to -1,000 (Dem)'
+	-800--601='-600 to -800 (Dem)'
+	-600--401='-400 to -600 (Dem)'
+	-400--201='-200 to -400 (Dem)'
+	-200-0='0 to -200 (Dem)'
+	0-200='0 to 200 (Rep)'
+	201-400='200 to 400 (Rep)'
+	401-600='400 to 600 (Rep)'
+	601-800='600 to 800 (Rep)'
+	800-1000='800 to 1,000 (Rep)'
+	1001-9000='1,000 or more (Republican)'
+	;
+run;
+******************************************************************************************;
+******************************************************************************************;
+proc format;
+	value zvotediffsma
+	-9000--1001='-1,000 or more (Democratic)'
+	-1000--801='-800 to -1,000 (Democratic)'
+	-800--601='-600 to -800 (Dem)'
+	-600--401='-400 to -600 (Dem)'
+	-400--201='-200 to -400 (Dem)'
+	-200-0='0 to -200 (Dem)'
+	0-200='0 to 200 (Rep)'
+	201-400='200 to 400 (Rep)'
+	401-600='400 to 600 (Rep)'
+	601-800='600 to 800 (Rep)'
+	800-1000='800 to 1,000 (Repuplican)'
+	1001-9000='1,000 or more (Republican)'
+	;
+run;
+****************************************************************************************;
+ods PDF file='Figure 4 Change in White Collar.pdf'; 
+proc sgplot data=saselect.standfactors ;
+	format zvotediff zvotediffsma. zWC zWC.;
+	hbar zWC/ response=zvotediff stat=mean;
+	yaxis  values=(5 to -3.5 by -.5) discreteorder=formatted label='Percentage White Collar Change';
+	title 'Change in White Collar Percentage of Population';
+	xaxis values=(-1000 to 1800 by 200) label='Number Republican over Democratic votes';
+run; 
+ods PDF close;
+*Use this Graph.. note that the change in WC/BC showed up rather than the composition itself ;
+******************************************************************************************;
+ods pdf file='Figure 5 Change in Blue Collar.pdf'; 
+proc sgplot data=saselect.standfactors ;
+	format zvotediff zvotediffsmall. zBC zBC.;
+	label zvotediff='Number Republican over Democratic votes (Mean) in thousands';
+	hbar zBC/ response=zvotediff stat=mean;
+	yaxis  values=(5 to -3.5 by -.5) discreteorder=formatted label='Percentage Blue Collar Change';
+	title 'Change in Blue Collar Percentage of Population';
+	xaxis values=(-1000 to 1600 by 200) label='Number Republican over Democratic votes (Mean)';
+run; 
+ods pdf close;
+*These two togeher- shows that blue collar and republican... but the urban/rural divide negates/amplifies? this; 
+
+proc format;
+	value zvotediffblue
+	-900000--250000='-250 or more (Democratic)'
+	-250000--100000='-100 or more (Democratic)'
+	-100000--75000='-100 to -75 (Dem)'
+	-75000--50000='-50 to -75 (Dem)'
+	-49999--30000='-30 to -50 (Dem)'
+	-29999--15000='-15 to -30 (Dem)'
+	-14999--7000='-7 to -15 (Dem)'
+	-6999-0="0 to -7 (Dem)"
+	1-250000='0 to 250(Rep)'
+	250001-500000='250 to 500 (Rep)'
+	500001-750000='500 to 750 (Republican)'
+	750001-high='750 to 1 million (Republican)'
+	;
+run;
+
+ods pdf file='Figure 6 Change in Blue Collar Sum.pdf'; 
+proc sgplot data=saselect.standfactors ;
+	format  zBC zBC. zvotediff zvotediffblue.;
+	label zvotediff='Number Republican over Democratic votes (Sum)';
+	hbar zBC/ response=zvotediff;
+	yaxis  values=(5 to -3.5 by -.5) discreteorder=formatted label='Percentage Blue Collar Change';
+	title 'Change in Blue Collar Percentage of Population';
+	*xaxis values=(-1000 to 1600 by 200) label='Number Republican over Democratic votes';
+run; 
+ods pdf close;
+*Keep. Interesting that the number republican votes INCREASES with decreasing blue collar.... until it hits negative. ;
+*Is this highlighting urban rural divide?;
+******************************************************************************************;
+
+proc sgplot data=saselect.standfactors ;
+	format zvotediff zvotediffbrackets. zWC zWC. zBC zBC.;
+	vbar zvotediff/ response=zBC stat=mean discreteoffset=-0.17 barwidth=0.3;
+	vbar zvotediff/ response=zWC stat=mean discreteoffset=0.17 barwidth=0.3;
+run; 
+*This is interesting but not sure if we want to use- shows that when there is a larger decrease in blue collar then more dem;
+
+******************************************************************************************;
+******************************************************************************************;
+*RACE GRAPHS
+******************************************************************************************;
+******************************************************************************************;
+proc format;
+	value black
+	 0-<.03="2% and less"
+	.03-<.06="3% to 5%"
+	.06-.0999="6% to 9%"
+	.1-.1399='10% to 13%'
+	.14-<.2='14% to 19%'
+	.20-.2399='20% to 23%'
+	.24-.2799='24% to 27%'
+	.28-.3199='28% to 31%'
+	.32-.3599='32% to 35%'
+	.36-.3999='36% to 39%'
+	.40-.4399='40% to 43%'
+	.44-<.48='44% to 47%'
+	.48-.5199='48% to 51%'
+	.52-.5599='52% to 55%'
+	.56-<.60='56% to 59%'
+	.60-.6399='60% to 63%'
+	.64-.6799="64% to 67%"
+	.68-.7199="68% to 71%"
+	.72-.7599='72% to 75%'
+	.76-.7999="76% to 79%"
+	.80-.8399="80% to 83%"
+	.84-high="84% and higher";
+run;
+
+ods pdf file='Figure 8 Demographics.pdf'; 
+proc sgplot data=saselect.changevar ;
+	format percent_black black.  percent_hispanic black. percent_white black. zvotediff zvotediffbrackets.;
+	label zvotediff='Number Republican over Democratic votes in thousands' percent_black='Black'
+			percent_white='White' percent_hispanic='Hispanic';
+	vbar zvotediff / response=percent_white stat=mean discreteoffset=-0.22 barwidth=0.25;
+	vbar zvotediff / response=percent_hispanic stat=mean  barwidth=0.2;
+	vbar zvotediff / response=percent_black stat=mean discreteoffset=0.22 barwidth=0.25;
+	yaxis label='Percentage of Population (Mean)';
+	xaxis fitpolicy=rotate;
+	title 'Demographics and Vote Change';
+	run; 
+ods pdf close;
+*keep;
+******************************************************************************************;
+ods pdf file='Figure 9 Minority Demographics.pdf'; 
+proc sgplot data=saselect.changevar ;
+	format percent_black black.  percent_hispanic black. percent_white black. zvotediff zvotediffbrackets.;
+	label zvotediff='Number Republican over Democratic votes in thousands' percent_black='Black'
+			percent_white='White' percent_hispanic='Hispanic';
+	vbar zvotediff / response=percent_hispanic stat=mean  barwidth=0.2;
+	vbar zvotediff / response=percent_black stat=mean discreteoffset=0.22 barwidth=0.25;
+	yaxis label='Percentage of Population (Avg)';
+	xaxis fitpolicy=rotate;
+	title 'Demographics and Vote Change';
+	run; 
+ods pdf close;
+*This zooms in on black and hispanic, interesting!;
+******************************************************************************************;
+proc format;
+	value zvotediffhis
+	-900000--25001='-25,000 or more (Democratic)'
+	-25000--20001='-25,000 to -20,000 (Democratic)'
+	-20000--15001='-15,000 to -20,000 (Dem)'
+	-15000--10001='-10,000 to -15,000 (Dem)'
+	-10000--5001='-5,000 to -10,000 (Dem)'
+	-5000-0='0 to -5,000 (Dem)'
+	1-25000='0 to 250(Rep)'
+	25001-50000='250 to 500 (Rep)'
+	50001-75000='500 to 750 (Republican)'
+	75001-high='750 to 1 million (Republican)'
+	;
+run;
+
+ods pdf file='Figure 10 Hispanic Mean.pdf'; 
+proc sgplot data=saselect.changevar ;
+	format percent_hispanic black. zvotediff zvotediffhis. ;
+	label zvotediff='Number Republican over Democratic votes (Mean)' percent_hispanic='Hispanic Percentage of Population';
+	hbar percent_hispanic  / response=zvotediff stat=mean  ;
+	yaxis  values=(.87 to 0 by -.03);
+	xaxis offsetmax=.05;
+	title 'Hispanic Population and Votes';
+	run; 
+ods pdf close;
+
+ods pdf file='Figure 11 Hispanic Sum.pdf'; 
+proc sgplot data=saselect.changevar ;
+	format percent_hispanic black. ;
+	label zvotediff='Number Republican over Democratic votes (Sum)' percent_hispanic='Hispanic Percentage of Population';
+	hbar percent_hispanic  / response=zvotediff  ;
+	yaxis  values=(.87 to 0 by -.03);
+	xaxis offsetmin=.05;
+	title 'Hispanic Population and Votes';
+	run; 
+ods pdf close;
+
+******************************************************************************************;
+proc format;
+	value zvotediffbl
+	-2000-0='-2,000 to 0 (Democratic)'
+	0-2000='0 to 2,000 (Rep)'
+	2000-4000='2,000 to 4,000 (Rep)'
+	4000-6000='4,000 to 6,000 (Republican)'
+	;
+run;
+
+ods pdf file='Figure 13 Black Mean.pdf'; 
+proc sgplot data=saselect.changevar ;
+	format percent_black black. zvotediff zvotediffbl. ;
+	label zvotediff='Number Republican over Democratic votes (Mean)' percent_black='Black Percentage of Population';
+	hbar percent_black  / response=zvotediff stat=mean;
+	yaxis  values=(.87 to 0 by -.03);
+	xaxis offsetmin=.05;
+	title 'Black Population and Votes';
+	run; 
+ods pdf close;
+
+ods pdf file='Figure 14 Black Sum.pdf';	
+proc sgplot data=saselect.changevar ;
+	format percent_black black. ;
+	label zvotediff='Number Republican over Democratic votes' percent_black='Black Percentage of Population';
+	hbar percent_black  / response=zvotediff;
+	yaxis  values=(.87 to 0 by -.03);
+	xaxis offsetmin=.05 offsetmax=.05;
+	title 'Black Population and Votes';
+	run; 
+ods pdf close;
+*interesting comparing the sum vs. mean of these two. 
+******************************************************************************************;
+proc format;
+	value zvotediffw
+	-6000--4001='-6,000 to -4,000 (Democratic)'
+	-4000--2001='-4,000 to -2,000 (Dem)'
+	-2000-0='-2,000 to 0 (Dem)'
+	0-2000='0 to 2,000 (Republican)'
+	2000-4000='2,000 to 4,000 (Rep)'
+	4000-6000='4,000 to 6,000 (Republican)'
+	;
+run;
+
+
+ods pdf file='Figure 16 Change in White Percentage.pdf'; 
+proc sgplot data=saselect.standfactors ;
+	format  zwhite zwhite. zvotediff zvotediffw. ;
+	hbar zwhite/ response=zvotediff stat=mean;
+	yaxis  values=(.04 to -.06 by -.01) discreteorder=formatted label='Change in White Percentage of Population (Avg)';
+	title 'Change in White Percentage of Population';
+	xaxis label='Number Republican over Democratic votes in thousands' offsetmin=.05;
+run; 
+ods pdf close;
+*Graph to keep!;
+******************************************************************************************;
+
+proc format;
+value frace
+	-1.5-<-1='-1.5 to -1'
+	-1-<-.5='-1 to -.5'
+	-.5-<0='-.5 to 0'
+	0-<.5='0 to .5'
+	.5-<1='.5 to 1'
+	1-<1.5='1 to 1.5'
+	1.5-<2='2.5 to 2'
+	2-<2.5='2 to 2.5'
+	2.5-<3='2.5 to 3'
+	3-<3.5='3 to 3.5'
+	3.5-<4='3.5 to 4'
+	4-<4.5='4 to 4.5'
+	4.5-<5='4.5 to 5'
+	5-5.5='5 to 5.5'
+	;
+run;
+
+proc sgplot data=saselect.standfactors;
+	label zvotediff='Number Republican over Democratic votes' frace='Race Factor';
+	format frace frace.;
+	vbar frace / response=zvotediff stat=mean;
+	xaxis display=(noline noticks)
+         fitpolicy=rotate
+        valuesrotate=vertical;
+	run;
+	
+*Positive leans black, negative leans white
+*Maybe want to do one with typical black/white? This seems too confusing.
+******************************************************************************************;
+
+proc sgplot data=saselect.standfactors ;
+	format zvotediff zvotediffhist. zwhite zwhite.;
+	hbar zvotediff;
+run;
+
+******************************************************************************************;
+******************************************************************************************;
+******************************************************************************************;
+*RELIGION  GRAPHS
+******************************************************************************************;
+******************************************************************************************;
+******************************************************************************************;
+proc format;
+	value MPRTRATEe
+	0-<50='50 and under'
+	50-<100='50 to 100'
+	100-<150='100 to 150'
+	150-<200='150 to 200'
+	200-<250='200 to 250'
+	250-<300="250 to 300"
+	300-<350="300 to 350"
+	350-<400="350 to 400"
+	400-<450="400 to 450"
+	450-<500="450 to500"
+	500-<550="500 to 550"
+	550-<600="550 to 600"
+	600-<650="600 to 650"
+	650-<700="650 to 700"
+	700-high="700 and above";
+run;
+******************************************************************************************;
+ods pdf file='Figure 17 Evangelical.pdf'; 
+proc sgplot data=saselect.changevar ;
+	format evanrate MPRTRATEE. ;
+	label zvotediff='Number Republican over Democratic votes' evanRATE='Evangelical Population (per 1000)';
+	hbar evanRATE  / response=zvotediff stat=mean  ;
+	yaxis values=(750 to 0 by -50) label='Evangelical Population (per 1000)';
+	xaxis offsetmin=.05 offsetmax=.05;
+	title 'Evangelical Population';
+	run; 
+ods pdf close;
+*250-300: dallas and harris county (houston) tx
+*51-100: santa barbara, San francisco;
+******************************************************************************************;
+ods pdf file='Figure 18 Catholic.pdf'; 
+proc sgplot data=saselect.changevar ;
+	format cathrate MPRTRATEE.  zvotediff zvotediffw.;
+	label zvotediff='Number Republican over Democratic votes' cathRATE='Catholic Population (per 1000)';
+	hbar cathRATE  / response=zvotediff stat=mean  ;
+	yaxis values=(750 to 0 by -50);
+	xaxis offsetmax=.05;
+	title 'Catholic Population';
+	run;
+ods pdf close;
+*Outliers (450-500) could be explained by differing locations of catholic rates- colorado and SD vs. Newyork and Main with high
+pop density skewing to democratic). 
+*350-400 Los Angelos County, skewing democratic; 
+******************************************************************************************;
+ods pdf file='Figure 19 All Religions.pdf'; 
+proc sgplot data=saselect.changevar ;
+	format totrate MPRTRATEE.;
+	label zvotediff='Number Republican over Democratic Votes' totRATE='Total Religious Population (per 1000)';
+	hbar totRATE  / response=zvotediff ;
+	yaxis values=(750 to 0 by -50);
+	xaxis offsetmin=.05 offsetmax=.05;
+	title 'Religious Population of All Denominations';
+	run; 
+ods pdf close;
+******************************************************************************************;
+ods pdf file='Figure 20 Catholic and Evangelical.pdf'; 
+proc sgplot data=saselect.changevar;
+	format cathrate mprtratee. evanrate mprtratee. zvotediff zvotediffbrackets.;
+	label zvotediff='Number of Republican over Democratic Votes in thousands' cathrate='Catholicism Rate' evanrate='Evangelical Rate';
+	vbar zvotediff/ response=cathrate stat=mean barwidth=.25;
+	vbar zvotediff/ response=evanrate stat=mean discreteoffset=0.22 barwidth=0.25;
+	yaxis label='Rate of Religion (per 1000)' offsetmax=.05;
+	xaxis fitpolicy=rotate;
+	title 'Catholic and Evangelical (Mean)';
+run;
+ods pdf close;
+
+ods pdf file='Figure 21 Catholic and Evangelical Sum.pdf'; 
+proc sgplot data=saselect.changevar;
+	format  zvotediff zvotediffbrackets. ;
+	label zvotediff='Number of Republican over Democratic Votes in thousands' cathrate='Catholicism Rate' evanrate='Evangelical Rate';
+	vbar zvotediff/ response=cathrate  barwidth=.25;
+	vbar zvotediff/ response=evanrate  discreteoffset=0.22 barwidth=0.25;
+	yaxis label='Rate of Religion (per 1000) Sum';
+	xaxis fitpolicy=rotate;
+	title 'Catholic and Evangelical (Sum)';
+run;
+ods pdf close;
+*compare this as the sum;
+
+******************************************************************************************;
+******************************************************************************************;
+*OTHER GRAPHS Don't think I like. 
+******************************************************************************************;
+******************************************************************************************;
+proc format;
+	value zed
+	-32--10.1='-10% or more'
+	-10--5.1='-5% to -10%'
+	-5--4.1='-4% to -5%'
+	-4--3.1='-3% to -4%'
+	-3--2.1='-2% to -3%'
+	-2--1.1='-1% to -2%'
+	-1-0='0 to -1%'
+	0-1='0 to 1%'
+	1.1-2='1% to 2%'
+	2.1-3='2% to 3%'
+	3.1-4='3% to 4%'
+	4.1-5='4% to 5%'
+	5.1-10='5% to 10%'
+	10.1-32='10% or more'
+	;
+run;
+******************************************************************************************;
+proc sgplot data=saselect.standfactors ;
+	format zvotediff zvotediffbrackets. zlED zED. zged zed.;
+	hbar zvotediff/ response=zled stat=mean;
+	hbar zvotediff/ response=zged stat=mean ;
+	*yaxis  values=(.04 to -.06 by -.01) discreteorder=formatted label='Change in White Percentage of Population';
+	*title 'Change in White Percentage of Population and Votes between 2012 and 2016';
+	*xaxis label='Average Difference in Votes';
+run; 
+*don't like this one.
+******************************************************************************************;
+proc sgplot data=saselect.standfactors ;
+	format zvotediff zvotediffbrackets. zlED zED. zged zed.;
+	hbar zled/ response=zvotediff;
+	*yaxis  values=(.04 to -.06 by -.01) discreteorder=formatted label='Change in White Percentage of Population';
+	*title 'Change in White Percentage of Population and Votes between 2012 and 2016';
+	xaxis  label='Average Difference in Votes';
+run; 
+*don't like this one, change in education not indicitive.....;
+******************************************************************************************;
+ods graphics/discretemax=2400;
+proc sgplot data=saselect.standfactors ;
+	format zvotediff zvotediffbrackets.;
+	hbar fzgender/ response=zvotediff stat=mean;
+run;
+
+
+ods graphics/discretemax=2400;
+proc sgplot data=saselect.standfactors ;
+	format zvotediff zvotediffbrackets.;
+	hbar zfemale/ response=zvotediff stat=mean;
+run;
+
+
+ods graphics/discretemax=2600;
