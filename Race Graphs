@@ -1,0 +1,146 @@
+****************************start here black;
+proc format;
+	value narrowmarg
+	-.075--.06='-7.5 to -6'
+	-.059--.045='-5.9 to -4.5'
+	-.044--.030='-4.4 to -3'
+	-.029--.015='-2.9 to -1.5'
+	-.014-0='-1.4 to 0'
+	.001-.015='0 to 1.5'
+	.016-.030='1.6 to 3'
+	.031-.045='3.1 to 4.5'
+	.046-.060='4.6 to 6'
+	.061-.075='6.1 to 7.5';
+run;
+
+proc format;
+	value black
+	 0-.02="2% and less"
+	.03-.05="3% to 5%"
+	.06-.09="6% to 9%"
+	.1-.13='10% to 13%'
+	.14-.19='14%-19%'
+	.20-.23='20% to 23%'
+	.24-.27='24% to 27%'
+	.28-.31='28% to 31%'
+	.32-.35='32% to 35%'
+	.36-.39='36% to 39%'
+	.40-.43='40% to 43%'
+	.44-.47='44% to 47%'
+	.48-.51='48% to 51%'
+	.52-.55='52% to 55%'
+	.56-.59='56% to 59%'
+	.60-.63='60% to 63%'
+	.64-.67="64% to 67%"
+	.68-.71="68% to 71%"
+	.72-.75='72% to 75%'
+	.76-.79="76% to 79%"
+	.80-.83="80% to 83%"
+	.84-high="84% and higher";
+run;
+
+
+
+proc format;
+	value blackrev
+	.84-high="84% and higher"
+	.80-.83="80% to 83%"
+	.76-.79="76% to 79%"
+	.72-.75='72% to 75%'
+	.68-.71="68% to 71%"
+	.64-.67="64% to 67%"
+	.60-.63='60% to 63%'
+	.56-.59='56% to 59%'
+	.52-.55='52% to 55%'
+	.48-.51='48% to 51%'
+	.44-.47='44% to 47%'
+	.40-.43='40% to 43%'
+	.36-.39='36% to 39%'
+	.32-.35='32% to 35%'
+	.28-.31='28% to 31%'
+	.24-.27='24% to 27%'
+	.20-.23='20% to 23%'
+	.14-.19='14%-19%'
+	.1-.13='10% to 13%'
+	.06-.09="6% to 9%"
+	.03-.05="3% to 5%"
+	 0-.02="2% and less"
+	;
+run;
+*******Black both***************************;
+ods graphics/discretemax=1200;
+proc sgplot data=saselect.marginstogether ;
+	format percent_black blackrev.;
+	hbar percent_black / response=margin stat=mean ;
+	hbar percent_black/ response=narrow stat=mean ;
+	yaxis  values=(0 to .87 by .03) discreteorder=formatted;
+run; 
+
+*************black narrow********************;
+proc sgplot data=saselect.marginstogether ;
+	format percent_black black.;
+	hbar percent_black/ response=narrow stat=mean ;
+	yaxis values=(0 to .87 by .03);
+run; 
+
+**********white both***************************; 
+proc sgplot data=saselect.marginstogether ;
+	format  percent_white black.  ;
+	hbar percent_white/ response=margin stat=mean ;
+	hbar percent_white/response=narrow stat=mean;
+	yaxis values=(0 to .87 by .03);
+run; 
+
+*********white narrow************************;
+proc sgplot data=saselect.marginstogether ;
+	format percent_white black.;
+	hbar percent_white/ response=narrow stat=mean ;
+	yaxis values=(0 to .87 by .03);
+run; 
+
+**********hispanic both*******************;
+ods graphics/discretemax=1800;
+proc sgplot data=saselect.marginstogether ;
+	format  percent_hispanic black.  ;
+	hbar percent_hispanic/ response=margin stat=mean ;
+	hbar percent_hispanic/response=narrow stat=mean;
+	yaxis values=(0 to .87 by .03);
+run; 
+
+********hispanic narrow****************;
+proc sgplot data=saselect.marginstogether ;
+	format percent_hispanic black.;
+	hbar percent_hispanic/ response=narrow stat=mean ;
+	yaxis values=(0 to .87 by .03);
+run;
+
+
+*******************races together******;
+ proc sgplot data=saselect.marginstogether ;
+	format percent_hispanic black. narrow narrowmarg.;
+	label percent_black='Black' percent_hispanic='Hispanic' percent_white='White';
+	vbar narrow/response=percent_white stat=mean barwidth=.3 DISCRETEOFFSET=-0.3 fillattrs=(color=blue);
+	vbar narrow/ response=percent_black stat=mean barwidth=.3 fillattrs=(color=orange) ;
+	vbar narrow/response=percent_hispanic stat=mean barwidth=.3 DISCRETEOFFSET=0.3 fillattrs=(color=green);
+	vline narrow/response=uswhite  stat=mean nostatlabel lineattrs=(thickness=5 color=blue) name='ex';
+	vline narrow/response=usblack stat=mean nostatlabel lineattrs=(thickness=5 color=orange) name= 'exx';
+	vline narrow/response=ushispanic stat=mean nostatlabel lineattrs=(thickness=5 color=green) name ='exxx';
+	xaxis values=(-.075 to .075 by .015) label='Margin of Victory' fitpolicy=rotate ;
+	yaxis label='Percent of Population' values=(0 to .90 by 0.1);
+	title 'Demographics in Battleground Counties';
+	keylegend /exclude=('usblack' 'uswhite' 'ushispanic');
+run;
+
+**********Narrow black and hispanic**********;
+ proc sgplot data=saselect.marginstogether ;
+	format percent_hispanic black. narrow narrowmarg.;
+	label percent_black='Black' percent_hispanic='Hispanic';
+	vbar narrow/ response=percent_black stat=mean barwidth=.3 name='Black' fillattrs=(color=orange) ;
+	vbar narrow/response=percent_hispanic stat=mean barwidth=.3 DISCRETEOFFSET=0.3 name='Hispanic'fillattrs=(color=green) ;
+	vline narrow/response=usblack stat=mean nostatlabel lineattrs=(thickness=5 color=orange) name= 'exx';
+	vline narrow/response=ushispanic stat=mean nostatlabel lineattrs=(thickness=5 color=green) name ='exxx';
+	xaxis values=(-.075 to .075 by .015) label='Margin of Victory' fitpolicy=rotate;
+	yaxis label='Percent of Population' values=(0 to .20 by .05);
+	title 'Minority Population in Battleground Counties';
+	keylegend /exclude=('usblack'  'ushispanic');
+run;
